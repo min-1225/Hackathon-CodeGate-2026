@@ -1,4 +1,4 @@
-# VeilNote
+# Hackathon(CodeGate 2026) · VeilNote
 
 민감한 회의 원문을 브라우저에서 비식별화하고, 서버와 LLM에는 토큰화된 텍스트만 전달하는 회의록·업무 실행 에이전트입니다.
 
