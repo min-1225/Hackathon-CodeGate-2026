@@ -1,10 +1,10 @@
 # Hackathon(CodeGate 2026) · VeilNote
 
-민감한 회의 원문을 브라우저에서 비식별화하고, 서버와 LLM에는 토큰화된 텍스트만 전달하는 회의록·업무 실행 에이전트입니다.
+민감한 회의 원문과 오디오를 기기 밖으로 보내지 않고, 브라우저에서 비식별화한 텍스트만 LLM에 전달하는 회의록·업무 실행 에이전트입니다.
 
-코드게이트 AI 스타트업 해커톤에서 팀 TRACEGATE가 개발한 프로토타입이며, 이상민은 **백엔드 개발을 중심으로 API 계약과 프런트엔드 연결을 담당**했습니다.
+코드게이트 AI 스타트업 해커톤에서 팀 TRACEGATE가 개발했습니다. 이상민은 **백엔드 API와 LLM 연동을 중심으로 개발하고, 프런트엔드와 백엔드의 요청·응답 흐름을 연결**했습니다.
 
-> 저장소 상태: 공개 가능한 프런트 프로토타입과 개발·API 명세를 정리한 포트폴리오 저장소입니다. 원본 백엔드와 `/shared` 모듈이 제공 자료에 없어 현재 저장소만으로는 전체 서비스를 실행할 수 없습니다.
+> 이 저장소는 개인 포트폴리오용 미러입니다. 실제 코드는 팀 원본 저장소 [`TRACEGATE/hackathon_2026`](https://github.com/TRACEGATE/hackathon_2026)의 `main` 브랜치 `7619bc1`을 기준으로 반영했습니다.
 
 ## Project Summary
 
@@ -12,172 +12,165 @@
 | --- | --- |
 | 행사 | 코드게이트 AI 스타트업 해커톤 |
 | 팀 | TRACEGATE |
-| 주제 | 업무·생산성 자동화 / 회의록 정리 / 협업도구 |
-| 담당 | 백엔드 API, LLM 연동, 보안 게이트, 프런트엔드 연동 |
-| 핵심 가치 | 원문·매핑 테이블은 기기에 남기고 서버에는 토큰만 전송 |
-
-## Documents
-
-- [프로젝트 포트폴리오](./docs/PORTFOLIO.md)
-- [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)
-- [자료 구성과 누락 파일](./docs/SOURCE_INVENTORY.md)
-- [개발 명세서 원본](./docs/VeilNote_Development_Spec_v2.docx)
-- [API 명세서 원본](./docs/VeilNote_API_Spec.pdf)
-- [데모 영상 안내](./demo/README.md)
-
-## Problem
-
-일반적인 AI 회의록 서비스는 녹음 파일이나 회의 원문을 외부 서버로 전송합니다. 기업명, 고객명, 계약 금액, 연락처가 포함된 회의에서는 이 전송 자체가 도입 장벽이 됩니다.
-
-VeilNote는 다음 경계를 제품의 핵심 규칙으로 두었습니다.
-
-1. 음성 인식과 개인정보 탐지는 브라우저에서 수행합니다.
-2. 사용자가 탐지 결과를 직접 확인하고 수정합니다.
-3. 원문을 토큰으로 치환한 뒤 잔존 개인정보를 다시 검사합니다.
-4. 백엔드와 LLM에는 토큰화된 텍스트만 전달합니다.
-5. 응답은 브라우저에 보관된 매핑 테이블로 화면 표시 직전에 복원합니다.
+| 서비스 | VeilNote |
+| 담당 | 백엔드 API, Claude 연동, 서버측 개인정보 유출 게이트, 프런트엔드 연동 |
+| 핵심 가치 | 오디오·원문·토큰 매핑은 로컬에 두고 서버에는 토큰화된 텍스트만 전송 |
+| 백엔드 | Node.js 20+, Express 4, Anthropic SDK, 순수 ESM |
+| 프런트엔드 | React 19, TypeScript, Vite, Transformers.js, Web Audio API |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A["음성·텍스트 입력"] --> B["브라우저 STT·개체 탐지"]
-    B --> C["사람의 확인·토큰화"]
-    C --> D{"잔존 개인정보 검사"}
-    D -->|"통과: 토큰만"| E["백엔드 LLM 프록시"]
-    D -->|"실패"| X["422 전송 차단"]
-    E --> F["구조화된 요약·업무 응답"]
-    F --> G["브라우저 로컬 복원"]
-    G --> H["회의 요약·업무 화면"]
+    A["마이크·텍스트 입력"] --> B["브라우저 Whisper STT"]
+    B --> C["민감정보 탐지·사용자 검토"]
+    C --> D["토큰화·로컬 매핑 보관"]
+    D --> E{"서버측 잔존 PII 검사"}
+    E -->|"실패"| X["422 전송 차단"]
+    E -->|"통과"| F["Express API"]
+    F --> G["Claude 구조화 출력"]
+    G --> H["요약·결정·액션아이템"]
+    H --> I["프런트에서 원문 복원"]
+    H --> J["인메모리 할일 대시보드"]
 ```
 
 ## My Contribution
 
 ### Backend
 
-- 브라우저가 토큰화된 본문만 보내도록 JSON 요청 계약을 설계했습니다.
-- API 키가 프런트엔드에 노출되지 않도록 LLM 호출을 백엔드 프록시로 분리했습니다.
-- 한 번의 LLM 호출에서 요약, 결정사항, 액션아이템을 구조화된 JSON으로 받도록 응답 계약을 정리했습니다.
-- 토큰화되지 않은 이메일·전화번호·주민등록번호·카드번호가 남으면 LLM 호출 전에 `422`로 차단하는 잔존 PII 게이트를 정의했습니다.
-- 입력 오류, 존재하지 않는 업무, 잔존 PII, LLM 호출 실패를 `400`, `404`, `422`, `502`로 구분했습니다.
-- 회의에서 생성된 업무를 조회·수정·삭제하는 업무 대시보드 API의 v2 계약을 작성했습니다.
+- `POST /api/process-meeting`을 중심으로 회의 처리 API를 구성했습니다.
+- API 키가 브라우저에 노출되지 않도록 Claude 호출을 Express 백엔드로 분리했습니다.
+- 요약, 결정사항, 액션아이템, 개인 STAR 기록을 한 번의 구조화된 LLM 응답으로 받도록 JSON Schema를 연결했습니다.
+- 이메일·전화번호·주민등록번호·카드번호가 토큰화되지 않고 남으면 LLM 호출 전에 `422`로 차단하는 서버측 게이트를 적용했습니다.
+- 액션아이템을 추가 호출 없이 할일 레코드로 변환하고 조회·수정·삭제할 수 있도록 인메모리 업무 저장소를 연결했습니다.
+- 토큰을 변경한 전사 교정 결과는 폐기하고, JSON 파싱 실패는 한 번만 재시도하도록 방어 로직을 구성했습니다.
 
 ### Frontend Integration
 
-- 프런트엔드의 `fetch` 요청 형식과 백엔드 응답 필드를 맞추고 성공·차단·LLM 실패 상태를 화면에 연결했습니다.
-- 브라우저에만 있는 매핑 테이블로 서버 응답을 복원해 팀 요약과 개인 STAR 문장을 표시하는 흐름을 연결했습니다.
-- 토큰화·탐지·유출검사 로직을 브라우저와 서버에서 같은 규칙으로 사용할 수 있도록 공용 ESM 모듈 경로를 설계했습니다.
-- 온디바이스 Whisper의 받아쓰기 결과가 개인정보 탐지와 API 요청으로 이어지도록 입력 파이프라인을 연결했습니다.
+- `VITE_API_BASE_URL`을 통해 프런트엔드와 백엔드 주소를 분리했습니다.
+- `fetch` 요청을 `/api/process-meeting` 계약에 맞추고 네트워크·검증·서버 오류를 화면 상태로 연결했습니다.
+- 브라우저에서 토큰 매핑을 보관하고 서버 응답을 렌더링 직전에 재귀적으로 복원하는 흐름을 연결했습니다.
+- 온디바이스 Whisper 결과가 탐지 → 사용자 검토 → 토큰화 → API 요청으로 이어지도록 통합했습니다.
 
-## Prototype Flow
+## Security Flow
 
-```text
-마이크 입력
-  -> AudioWorklet에서 PCM 프레임 수집
-  -> Web Worker의 Whisper가 브라우저에서 받아쓰기
-  -> 규칙 + 사전 + 온디바이스 NER로 민감정보 탐지
-  -> 사용자가 탐지 결과 확인·수정
-  -> 토큰화 및 역방향 유출검사
-  -> 백엔드 API에 토큰화 텍스트 전송
-  -> LLM 구조화 응답
-  -> 브라우저에서 원문 복원 후 결과 표시
+1. 오디오는 브라우저의 Web Worker에서 Whisper로 처리합니다.
+2. 규칙·사전 기반 탐지 결과를 사용자가 확인하고 수정합니다.
+3. 회사명, 인명, 금액을 `[ORG_1]`, `[PERSON_1]`, `[AMOUNT_1]` 형태로 치환합니다.
+4. 원문과 토큰 매핑은 브라우저에만 유지합니다.
+5. 백엔드는 잔존 PII를 다시 검사한 뒤 통과한 요청만 Claude에 전달합니다.
+6. Claude는 토큰을 유지한 구조화 JSON을 반환합니다.
+7. 프런트엔드는 화면 표시 직전에 로컬 매핑으로 원문을 복원합니다.
+
+## API
+
+| Method | Endpoint | 역할 |
+| --- | --- | --- |
+| `GET` | `/health` | 서버·모델·API 키 설정 상태 확인 |
+| `POST` | `/api/process-meeting` | 토큰화 회의록을 요약·결정·업무·STAR 결과로 변환 |
+| `GET` | `/api/tasks` | 할일 목록, 필터, 집계 조회 |
+| `GET` | `/api/tasks/:id` | 할일 단건 조회 |
+| `PATCH` | `/api/tasks/:id` | 상태·내용·담당자·우선순위 수정 |
+| `DELETE` | `/api/tasks/:id` | 할일 삭제 |
+| `POST` | `/api/demo/detect` | 데모용 민감정보 탐지 |
+| `POST` | `/api/demo/tokenize` | 데모용 토큰화 |
+| `POST` | `/api/demo/restore` | 데모용 복원 |
+
+상세 계약은 [`backend/docs/API_SPEC.md`](./backend/docs/API_SPEC.md)를 참고하세요.
+
+## Quick Start
+
+### 1. Backend
+
+```bash
+cd backend
+npm ci
+cp .env.example .env
+# .env의 ANTHROPIC_API_KEY를 실제 키로 변경
+npm start
 ```
 
-## API Design
+백엔드는 기본적으로 `http://localhost:3000`에서 실행됩니다. API 키가 없어도 `npm run demo`로 LLM 호출 직전까지 보안·토큰화 흐름을 확인할 수 있습니다.
 
-프로토타입과 v2 확장 계약은 서로 다른 개발 시점의 자료입니다.
+### 2. Frontend
 
-| 단계 | Method | Endpoint | 역할 |
-| --- | --- | --- | --- |
-| 프로토타입 연동 | `POST` | `/api/process` | 토큰화 회의문을 요약·개인 STAR 결과로 변환 |
-| v2 메인 계약 | `POST` | `/api/process-meeting` | 요약·결정사항·액션아이템을 한 번에 생성 |
-| 상태 확인 | `GET` | `/health` | 서비스·모델·API 키 설정 상태 확인 |
-| 업무 목록 | `GET` | `/api/tasks` | 상태·담당자·회의별 필터와 집계 반환 |
-| 업무 단건 | `GET` | `/api/tasks/:id` | 업무 상세 조회 |
-| 업무 수정 | `PATCH` | `/api/tasks/:id` | 완료 체크, 내용·담당자·우선순위 수정 |
-| 업무 삭제 | `DELETE` | `/api/tasks/:id` | 업무 삭제와 집계 재계산 |
+```bash
+cd frontend
+npm ci
+npm run dev
+```
 
-## Security Decisions
-
-- 원문과 토큰 매핑 테이블을 요청 본문에 포함하지 않습니다.
-- 서버는 요청·응답 본문을 로그에 남기지 않는 정책을 사용합니다.
-- 잔존 PII가 발견되면 LLM을 호출하지 않고 요청을 차단합니다.
-- 오류 응답의 `preview`에는 원문 전체가 아니라 마스킹된 미리보기만 포함합니다.
-- 복원된 결과는 다시 저장하지 않고 렌더링 직전에만 사용합니다.
-- 날짜는 LLM이 절대 날짜를 만들지 않고 상대일수로 반환하게 해 브라우저가 계산합니다.
+프런트엔드는 기본적으로 `http://localhost:3000`의 백엔드를 호출합니다. 다른 주소를 사용할 때는 `VITE_API_BASE_URL`을 설정합니다.
 
 ## Repository Structure
 
 ```text
-veilnote/
-├── README.md
-├── .gitignore
-├── public/
-│   ├── README.md
-│   ├── index.html
-│   ├── mic.js
-│   ├── pcm-worklet.js
-│   └── whisper-worker.js
+.
+├── backend/
+│   ├── src/
+│   │   ├── server.js
+│   │   ├── meetingProcess.js
+│   │   ├── taskStore.js
+│   │   └── shared/
+│   ├── scripts/demo.js
+│   ├── docs/API_SPEC.md
+│   └── package.json
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── lib/
+│   └── package.json
 ├── docs/
-│   ├── PORTFOLIO.md
-│   ├── CODE_AND_API_GUIDE.md
-│   ├── SOURCE_INVENTORY.md
-│   ├── VeilNote_Development_Spec_v2.docx
-│   └── VeilNote_API_Spec.pdf
-└── demo/
-    └── README.md
+├── demo/
+└── README.md
 ```
 
-## Confirmed Prototype Code
+## Custom Code and Library APIs
 
-| 파일 | 역할 |
-| --- | --- |
-| `public/index.html` | 동의 UI, 개인정보 탐지·검토, 토큰화 미리보기, API 호출, 로컬 복원 |
-| `public/mic.js` | 마이크 캡처, 음성구간 감지, 16kHz 리샘플링, Whisper 작업 큐 |
-| `public/pcm-worklet.js` | AudioWorklet 렌더 스레드에서 PCM 프레임 전달 |
-| `public/whisper-worker.js` | Transformers.js Whisper 추론과 WebGPU → WASM 폴백 |
+프로젝트에서 직접 작성한 주요 함수는 다음과 같습니다.
 
-## Technology
+- 백엔드: `processMeeting`, `buildMeetingUserPrompt`, `dropTokenTouchingCorrections`, `scanResidualPII`, `addTasksFromActionItems`, `updateTask`
+- 프런트엔드: `detectEntities`, `tokenizeFromEntities`, `restoreDeep`, `applyCorrections`, `processMeeting`
+- 음성 처리: `MeetingRecorder`, `resampleTo16k`, `collapseRepeats`, `getTranscriber`
 
-### Confirmed in the prototype
+라이브러리와 표준 API는 직접 재구현하지 않았습니다.
 
-- HTML, CSS, JavaScript
-- `@huggingface/transformers` 3.0.2
-- `Xenova/whisper-base`
-- `Xenova/bert-base-multilingual-cased-ner-hrl`
-- Web Audio API, AudioWorklet, Web Worker, Speech Synthesis
-- REST/JSON API integration
+- Express: `express()`, `express.json()`, `app.get/post/patch/delete`, `express.static`
+- Anthropic SDK: `new Anthropic()`, `anthropic.messages.create()`
+- React: `useState`, `useMemo`와 컴포넌트 렌더링
+- Transformers.js: `pipeline`, `env`
+- 브라우저 표준: `fetch`, `AudioContext`, `AudioWorkletNode`, `Worker`
 
-### Defined in the v2 development specification
+구체적인 입력·출력 형식과 함수별 책임은 [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)에 정리했습니다.
 
-- React 18, TypeScript, Vite
-- Zustand
-- IndexedDB, Dexie.js
-- Tailwind CSS
-- Claude API
-- Slack Incoming Webhook
+## Documents
 
-## Custom Code vs. Library APIs
+- [프로젝트 포트폴리오](./docs/PORTFOLIO.md)
+- [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)
+- [소스 및 출처 기록](./docs/SOURCE_INVENTORY.md)
+- [팀 저장소 원본 README](./docs/TEAM_REPOSITORY_README.md)
+- [개발 명세서](./docs/VeilNote_Development_Spec_v2.docx)
+- [API 명세서 PDF](./docs/VeilNote_API_Spec.pdf)
+- [데모 영상](https://github.com/min-1225/Hackathon-CodeGate-2026/releases/tag/v0.1.0-demo)
 
-`resampleTo16k`, `concatFloat32`, `rms`, `MeetingRecorder`, `getTranscriber`는 프로젝트에서 작성한 사용자 정의 코드입니다.
+## Verification
 
-`pipeline`과 `env`는 Transformers.js가 제공하고, `AudioContext`, `AudioWorkletNode`, `Worker`, `fetch`, `localStorage`, `SpeechSynthesisUtterance`는 브라우저 표준 API가 제공합니다. 라이브러리와 브라우저가 이미 제공하는 기능은 다시 구현하지 않고 회의 녹음·작업 큐·보안 흐름을 조합하는 데 집중했습니다.
+```bash
+cd backend
+npm ci
+npm run demo
 
-자세한 구분은 [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)에 정리했습니다.
+cd ../frontend
+npm ci
+npm run build
+npm run lint
+```
 
-## Run Status
+## Current Limitations
 
-현재 공개 자료에는 아래 파일이 없어 전체 실행이 불가능합니다.
-
-- 실제 백엔드 서버 소스
-- `/shared/tokenizer.js`
-- `/shared/detector.js`
-- `/shared/leakGuard.js`
-- `package.json`과 lock 파일
-- 실행 환경을 설명하는 `.env.example`
-
-누락 파일을 확보하기 전까지 이 저장소는 실행 배포본이 아니라 구현 증거와 설계를 보존하는 포트폴리오 저장소로 사용합니다.
-
-## License
-
-팀 공동 해커톤 프로젝트로 공개 라이선스를 확정하지 않았습니다. 별도 라이선스가 추가되기 전까지 코드와 문서의 무단 재사용·재배포를 허용하지 않습니다.
+- 업무 데이터는 인메모리 저장소를 사용하므로 서버 재시작 시 초기화됩니다.
+- 실제 LLM 호출에는 `ANTHROPIC_API_KEY`가 필요합니다.
+- 첫 Whisper 실행은 모델 다운로드가 필요하며 WebGPU를 사용할 수 없으면 WASM으로 폴백합니다.
+- 팀 공동 프로젝트이므로 별도의 오픈소스 라이선스가 확정되지 않았습니다.

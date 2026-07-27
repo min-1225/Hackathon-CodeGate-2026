@@ -60,7 +60,9 @@ export class MeetingRecorder {
     this.autoStopMs = opts.autoStopMs ?? 10000;
     this.segmentSilenceMs = opts.segmentSilenceMs ?? 900;
     this.silenceRms = opts.silenceRms ?? 0.01;
-    this.minSegmentSec = 0.35; // 이보다 짧은 소리는 무시(잡음 컷)
+    // 0.35s처럼 너무 짧은 조각은 Whisper에 문맥이 부족해 반복 루프(같은 단어 무한 반복)를
+    // 유발하기 쉽다고 알려져 있어, 잡음 컷 겸 안전 마진으로 조금 더 길게 잡는다.
+    this.minSegmentSec = 0.6;
     this.webgpu = opts.webgpu !== false;
 
     this.worker = null;
@@ -173,6 +175,12 @@ export class MeetingRecorder {
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)({
       sampleRate: TARGET_SR,
     });
+    // preload()의 모델 다운로드 대기 등 여러 await를 거친 뒤라 브라우저 자동재생 정책상
+    // suspended 상태로 생성될 수 있다. suspended 상태면 워클릿이 프레임을 보내지 않으므로
+    // 명시적으로 재개한다.
+    if (this.audioCtx.state === 'suspended') {
+      await this.audioCtx.resume();
+    }
     await this.audioCtx.audioWorklet.addModule('/pcm-worklet.js');
 
     this.sourceNode = this.audioCtx.createMediaStreamSource(this.stream);

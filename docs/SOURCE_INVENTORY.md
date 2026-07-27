@@ -1,21 +1,69 @@
 # Source Inventory
 
-## Included
+## Team Source
 
-| 저장소 경로 | 원본 | 상태 |
-| --- | --- | --- |
-| `public/index.html` | `public.zip` | 원형 보존 |
-| `public/mic.js` | `public.zip` | 원형 보존 |
-| `public/pcm-worklet.js` | `public.zip` | 원형 보존 |
-| `public/whisper-worker.js` | `public.zip` | 원형 보존 |
-| `docs/VeilNote_Development_Spec_v2.docx` | `VeilNote_개발명세서_v2.docx` | 파일명만 영문으로 정리 |
-| `docs/VeilNote_API_Spec.pdf` | `api_명세서.pdf` | 파일명만 영문으로 정리 |
-| `docs/PORTFOLIO.md` | 분석 결과 | 프로젝트·역할·면접용 설명 |
-| `docs/CODE_AND_API_GUIDE.md` | 분석 결과 | 코드 구조·API·사용자 정의/라이브러리 구분 |
+| 항목 | 값 |
+| --- | --- |
+| 원본 저장소 | [`TRACEGATE/hackathon_2026`](https://github.com/TRACEGATE/hackathon_2026) |
+| 반영 브랜치 | `main` |
+| 반영 커밋 | `7619bc1341a6faad131a04f6c2817db7a694f7e2` |
+| 반영 디렉터리 | `backend/`, `frontend/` |
+| 원본 README 보관 | `docs/TEAM_REPOSITORY_README.md` |
+
+원본의 백엔드는 Java가 아니라 Node.js/Express 기반 JavaScript ESM입니다. 원본 저장소의 `main`과 `veilnote-backend` 브랜치 및 도달 가능한 커밋에서 Java 파일, `pom.xml`, `build.gradle`은 확인되지 않았습니다.
+
+## Included Source
+
+### Backend
+
+- `backend/src/server.js`
+- `backend/src/meetingProcess.js`
+- `backend/src/taskStore.js`
+- `backend/src/shared/detector.js`
+- `backend/src/shared/tokenizer.js`
+- `backend/src/shared/leakGuard.js`
+- `backend/scripts/demo.js`
+- `backend/docs/API_SPEC.md`
+- `backend/package.json`
+- `backend/package-lock.json`
+- `backend/.env.example`
+- `backend/.gitignore`
+
+### Frontend
+
+- React/TypeScript 화면과 상태 관리 코드
+- 토큰화·복원·회의 저장소 코드
+- 백엔드 API 연결 코드
+- 마이크와 온디바이스 Whisper 코드
+- Vite·TypeScript·Oxlint 설정
+- `package.json`과 `package-lock.json`
+- 공개 이미지·SVG 자산
+- `.env.example`, `.gitignore`
+
+## Replaced Legacy Prototype
+
+처음 제공된 `public.zip`의 단일 HTML/JavaScript 프로토타입은 팀 저장소의 최신 React/TypeScript 프런트엔드보다 오래된 구성입니다. 중복과 실행 혼동을 피하기 위해 루트 `public/`을 제거하고 최신 원본의 `frontend/`로 교체했습니다.
+
+원본 압축파일 해시는 다음과 같습니다.
+
+```text
+public.zip
+SHA-256 00624ECC04118F9129EEE9B7881CF25EE59131AC61CCB5FF4FBA7F4C6D2942CD
+```
+
+필요하면 Git 이전 커밋에서 복구할 수 있습니다.
+
+## Documents
+
+| 저장소 경로 | 원본 |
+| --- | --- |
+| `docs/VeilNote_Development_Spec_v2.docx` | `VeilNote_개발명세서_v2.docx` |
+| `docs/VeilNote_API_Spec.pdf` | `api_명세서.pdf` |
+| `docs/PORTFOLIO.md` | 실제 코드 기반 포트폴리오 설명 |
+| `docs/CODE_AND_API_GUIDE.md` | 코드·API·사용자 정의/라이브러리 구분 |
+| `docs/TEAM_REPOSITORY_README.md` | 팀 원본 README 보존본 |
 
 ## Duplicate Files Omitted
-
-다음 파일은 SHA-256 해시가 원본과 같아 저장소에 중복으로 넣지 않았습니다.
 
 | 중복 파일 | 원본 | SHA-256 |
 | --- | --- | --- |
@@ -25,35 +73,25 @@
 
 ## Demo Video
 
-제공된 Edge 화면 녹화는 5분 5초이며, 압축 해제한 MP4가 약 369MB입니다. Git 저장소 본문에 대용량 바이너리를 커밋하지 않고 GitHub Release 자산으로 분리합니다.
+5분 5초 화면 녹화는 Git 이력에 넣지 않고 GitHub Release 자산으로 관리합니다.
 
-## Missing Source
+- [VeilNote Demo Video · v0.1.0-demo](https://github.com/min-1225/Hackathon-CodeGate-2026/releases/tag/v0.1.0-demo)
+- 자산명: `VeilNote-CodeGate-2026-Demo.zip`
+- 크기: 42.5 MB
 
-현재 자료만으로 전체 애플리케이션을 재현하려면 다음 파일이 추가로 필요합니다.
+## Secret Review
 
-- 백엔드 서버 진입점
-- API 라우트
-- LLM 클라이언트와 프롬프트
-- 서버 측 residual-PII guard
-- 업무 저장소 구현
-- `/shared/tokenizer.js`
-- `/shared/detector.js`
-- `/shared/leakGuard.js`
-- `package.json`
-- lock 파일
-- `.env.example`
-- 테스트
+- 실제 `.env` 파일은 포함하지 않았습니다.
+- `.env.example`에는 `sk-ant-...` 자리표시자만 있습니다.
+- 프런트엔드에는 Anthropic API 키가 없습니다.
+- 루트와 패키지별 `.gitignore`가 `.env`, `node_modules`, 빌드 결과를 제외합니다.
 
-누락 코드는 문서에 적힌 이름만 보고 임의로 구현하지 않았습니다.
+## Additional Local Materials
 
-## Additional Local Materials Found
-
-다음 관련 자료도 로컬 폴더에서 확인했지만, 사용자가 처음 지정한 파일이 아니거나 최종본 여부가 불명확해 저장소에는 포함하지 않았습니다.
+다음 자료는 최종본·공개 범위가 확정되지 않아 포함하지 않았습니다.
 
 - `TRACEGATE_PPT_VeilNote.pptx`와 PDF
 - `VeilNote_예상질문답변.pdf`와 DOCX
 - `veilnote질문 리스트.md`
 - `VeilNote_Pitch_Deck.pptx`
 - Notion API 명세 ZIP과 CSV
-
-최종본·공개 가능 여부가 확인되면 `docs/presentation/` 또는 GitHub Release에 추가할 수 있습니다.
