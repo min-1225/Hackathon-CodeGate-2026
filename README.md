@@ -12,7 +12,7 @@
 | 팀 | TRACEGATE |
 | 서비스 | VeilNote |
 | 담당 | 백엔드 API, Claude 연동, 서버측 개인정보 유출 게이트, 프런트엔드 연동, 발표 자료 제작·최종 발표 |
-| 핵심 가치 | 오디오·원문·토큰 매핑은 로컬에 두고 서버에는 토큰화된 텍스트만 전송 |
+| 특징 | 오디오·원문·토큰 매핑은 기기에만 두고, 서버에는 토큰화된 텍스트만 전송 |
 | 백엔드 | Node.js 20+, Express 4, Anthropic SDK, 순수 ESM |
 | 프런트엔드 | React 19, TypeScript, Vite, Transformers.js, Web Audio API |
 
@@ -130,29 +130,10 @@ npm run dev
 └── README.md
 ```
 
-## Custom Code and Library APIs
-
-프로젝트에서 직접 작성한 주요 함수는 다음과 같습니다.
-
-- 백엔드: `processMeeting`, `buildMeetingUserPrompt`, `dropTokenTouchingCorrections`, `scanResidualPII`, `addTasksFromActionItems`, `updateTask`
-- 프런트엔드: `detectEntities`, `tokenizeFromEntities`, `restoreDeep`, `applyCorrections`, `processMeeting`
-- 음성 처리: `MeetingRecorder`, `resampleTo16k`, `collapseRepeats`, `getTranscriber`
-
-라이브러리와 표준 API는 직접 재구현하지 않았습니다.
-
-- Express: `express()`, `express.json()`, `app.get/post/patch/delete`, `express.static`
-- Anthropic SDK: `new Anthropic()`, `anthropic.messages.create()`
-- React: `useState`, `useMemo`와 컴포넌트 렌더링
-- Transformers.js: `pipeline`, `env`
-- 브라우저 표준: `fetch`, `AudioContext`, `AudioWorkletNode`, `Worker`
-
-구체적인 입력·출력 형식과 함수별 책임은 [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)에 정리했습니다.
-
 ## Documents
 
 - [프로젝트 포트폴리오](./docs/PORTFOLIO.md)
 - [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)
-- [소스 및 출처 기록](./docs/SOURCE_INVENTORY.md)
 - [팀 저장소 원본 README](./docs/TEAM_REPOSITORY_README.md)
 - [개발 명세서](./docs/VeilNote_Development_Spec_v2.docx)
 - [API 명세서 PDF](./docs/VeilNote_API_Spec.pdf)

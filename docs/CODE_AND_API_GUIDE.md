@@ -1,15 +1,13 @@
 # VeilNote 코드 및 API 해설
 
-## 1. 분석 기준
+## 1. 구성
 
-이 문서는 팀 원본 저장소 [`TRACEGATE/hackathon_2026`](https://github.com/TRACEGATE/hackathon_2026)의 `main` 브랜치 `7619bc1`에 포함된 실제 코드를 기준으로 작성했습니다.
+팀 원본 저장소 [`TRACEGATE/hackathon_2026`](https://github.com/TRACEGATE/hackathon_2026)의 `main` 브랜치(`7619bc1`) 코드 기준입니다.
 
 ```text
 backend/   Node.js + Express + Anthropic SDK
 frontend/  React + TypeScript + Vite + 브라우저 온디바이스 Whisper
 ```
-
-Java 백엔드는 원본 저장소에 없습니다. 현재 구현은 JavaScript ESM 기반 Express 서버입니다.
 
 ## 2. 전체 실행 흐름
 
@@ -106,11 +104,9 @@ Transformers.js의 Whisper 파이프라인을 별도 Worker에서 실행합니�
 - 반복 문구 축약
 - 뉴스·구독 문구 기반 환각 필터
 
-## 5. 프로젝트에서 직접 만든 코드
+## 5. 주요 함수
 
-아래 함수·클래스·컴포넌트는 라이브러리 메서드가 아니라 이 프로젝트에서 직접 작성한 코드입니다.
-
-### 5-1. Backend 사용자 정의 함수
+### 5-1. Backend
 
 | 파일 | 함수 | 역할 |
 | --- | --- | --- |
@@ -140,9 +136,7 @@ Transformers.js의 Whisper 파이프라인을 별도 Worker에서 실행합니�
 |  | `scanResidualPII(text, options)` | 서버에서 차단할 잔존 개인정보 탐지 |
 |  | `summarizeFindings(findings)` | 원문 대신 유형·마스킹 미리보기만 반환 |
 
-`server.js`의 각 `app.get/post/patch/delete` 콜백도 프로젝트가 작성한 라우트 처리 함수입니다.
-
-### 5-2. Frontend 사용자 정의 함수
+### 5-2. Frontend
 
 | 파일 | 함수·클래스 | 역할 |
 | --- | --- | --- |
@@ -184,7 +178,7 @@ Transformers.js의 Whisper 파이프라인을 별도 Worker에서 실행합니�
 |  | `getTranscriber` | WebGPU→WASM 순서로 Whisper 파이프라인 생성 |
 | `public/pcm-worklet.js` | `PCMWorklet` | PCM 프레임을 전달하는 사용자 정의 AudioWorklet |
 
-다음 React 컴포넌트도 프로젝트가 작성했습니다.
+화면 컴포넌트:
 
 - `App`
 - `HomeScreen`
@@ -197,102 +191,7 @@ Transformers.js의 Whisper 파이프라인을 별도 Worker에서 실행합니�
 - `ActionChecklist`
 - `HighlightedText`
 
-각 화면 파일의 아이콘 함수(`InboxIcon`, `SparklesIcon`, `MicIcon`, `AlertIcon`, `ArrowRightIcon`, `HeroGraphic`)는 외부 아이콘 라이브러리가 아니라 JSX로 직접 작성한 표시용 컴포넌트입니다.
-
-## 6. 라이브러리와 표준 API가 제공하는 기능
-
-이미 라이브러리에 있는 기능은 다시 구현하지 않았습니다.
-
-### 6-1. Express
-
-`express` 패키지가 제공하는 형식입니다.
-
-```js
-const app = express();
-app.use(express.json({ limit: '1mb' }));
-app.use('/shared', express.static(directory));
-app.get(path, handler);
-app.post(path, handler);
-app.patch(path, handler);
-app.delete(path, handler);
-app.listen(port, callback);
-```
-
-- `express()`: 애플리케이션 생성
-- `express.json()`: JSON 본문 파서
-- `express.static()`: 정적 파일 미들웨어
-- `app.get/post/patch/delete()`: HTTP 라우트 등록
-- `res.status().json()`: 상태 코드와 JSON 응답
-
-### 6-2. Anthropic SDK
-
-`@anthropic-ai/sdk`가 제공하는 형식입니다.
-
-```js
-const anthropic = new Anthropic();
-const response = await anthropic.messages.create({
-  model,
-  max_tokens,
-  system,
-  output_config: {
-    effort,
-    format: { type: 'json_schema', schema },
-  },
-  messages: [{ role: 'user', content }],
-});
-```
-
-프로젝트는 HTTP 호출이나 인증 헤더를 직접 재구현하지 않고 SDK의 `messages.create()`를 사용합니다. 프로젝트가 직접 만든 부분은 전달할 프롬프트, JSON Schema, 재시도·검증 정책입니다.
-
-### 6-3. React
-
-React가 제공하는 기능입니다.
-
-- `useState(initialValue)`: 화면 상태
-- `useMemo(factory, dependencies)`: 계산값 메모이제이션
-- `useEffect(effect, dependencies)`: Recorder와 이벤트 생명주기
-- 함수 컴포넌트와 JSX 렌더링
-
-프로젝트가 직접 만든 부분은 화면 컴포넌트, 상태 전환, 토큰 검토 사용자 흐름입니다.
-
-### 6-4. Vite
-
-- `import.meta.env.VITE_API_BASE_URL`: 빌드 환경변수
-- `vite`: 개발 서버
-- `tsc -b && vite build`: TypeScript 검사와 프로덕션 빌드
-
-### 6-5. Transformers.js
-
-CDN의 `@huggingface/transformers@3.0.2`가 제공합니다.
-
-```js
-const transcriber = await pipeline(
-  'automatic-speech-recognition',
-  'Xenova/whisper-base',
-  { device: 'webgpu', dtype: 'fp32' },
-);
-const output = await transcriber(audio, options);
-```
-
-- `pipeline(task, model, options)`: 모델과 추론 파이프라인 생성
-- `env.allowLocalModels`: 모델 파일 조회 정책
-
-프로젝트가 직접 만든 부분은 디바이스 폴백, 모델 진행상태 전달, 반복·환각 후처리입니다.
-
-### 6-6. 브라우저 표준 API
-
-- `fetch(url, options)`: 백엔드 HTTP 요청
-- `navigator.mediaDevices.getUserMedia()`: 마이크 권한과 스트림
-- `AudioContext`: 오디오 그래프
-- `audioWorklet.addModule()`: AudioWorklet 모듈 등록
-- `AudioWorkletNode`: PCM 처리 노드
-- `Worker`: 별도 스레드
-- `postMessage(value, transfer)`: 스레드 간 메시지와 버퍼 이전
-- `localStorage.getItem/setItem/removeItem`: 브라우저 회의 기록
-
-이 API의 내부 기능은 직접 구현하지 않았고 VeilNote 흐름에 맞춰 조합했습니다.
-
-## 7. 메인 API 계약
+## 6. 메인 API 계약
 
 ### Request
 
@@ -341,7 +240,7 @@ Content-Type: application/json
 
 실제 응답의 업무 레코드에는 담당자·우선순위·마감일의 근거와 생성 시각 등 추가 필드가 포함됩니다.
 
-## 8. 오류 처리
+## 7. 오류 처리
 
 | HTTP | 상황 |
 | --- | --- |
@@ -352,7 +251,7 @@ Content-Type: application/json
 
 프런트엔드는 `BackendApiError`에 HTTP 상태, 서버 `code`, `findings`를 보관합니다.
 
-## 9. 실행과 검증
+## 8. 실행과 검증
 
 ```bash
 cd backend
@@ -371,7 +270,7 @@ npm run dev
 
 백엔드에는 별도 자동 테스트 스크립트가 없으며 `npm run demo`가 탐지·토큰화·유출 검사·업무 적재 흐름을 검증합니다. API 키가 없으면 실제 Claude 호출 직전에 정상 종료합니다.
 
-## 10. 구현상 한계
+## 9. 구현상 한계
 
 - 업무 저장소는 서버 메모리 기반입니다.
 - 프런트엔드 자동 탐지는 규칙과 사전 중심이라 완전한 NER가 아닙니다.
