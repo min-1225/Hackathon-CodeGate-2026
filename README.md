@@ -2,8 +2,6 @@
 
 민감한 회의 원문과 오디오를 기기 밖으로 보내지 않고, 브라우저에서 비식별화한 텍스트만 LLM에 전달하는 회의록·업무 실행 에이전트입니다.
 
-코드게이트 AI 스타트업 해커톤에서 팀 TRACEGATE가 개발했습니다. 이상민은 **백엔드 API와 LLM 연동을 중심으로 개발하고, 프런트엔드와 백엔드의 요청·응답 흐름을 연결**했으며, **해커톤 발표 자료 제작과 최종 발표**를 맡았습니다.
-
 > 이 저장소는 개인 포트폴리오용 미러입니다. 실제 코드는 팀 원본 저장소 [`TRACEGATE/hackathon_2026`](https://github.com/TRACEGATE/hackathon_2026)의 `main` 브랜치 `7619bc1`을 기준으로 반영했습니다.
 
 ## Project Summary
@@ -14,7 +12,7 @@
 | 팀 | TRACEGATE |
 | 서비스 | VeilNote |
 | 담당 | 백엔드 API, Claude 연동, 서버측 개인정보 유출 게이트, 프런트엔드 연동, 발표 자료 제작·최종 발표 |
-| 핵심 가치 | 오디오·원문·토큰 매핑은 로컬에 두고 서버에는 토큰화된 텍스트만 전송 |
+| 특징 | 오디오·원문·토큰 매핑은 기기에만 두고, 서버에는 토큰화된 텍스트만 전송 |
 | 백엔드 | Node.js 20+, Express 4, Anthropic SDK, 순수 ESM |
 | 프런트엔드 | React 19, TypeScript, Vite, Transformers.js, Web Audio API |
 
@@ -54,8 +52,8 @@ flowchart LR
 
 ### Presentation
 
-- 해커톤 발표 자료를 만들고 최종 발표를 맡았습니다.
-- 발표 평가 비중이 큰 대회였기 때문에, 팀은 발표 흐름을 기준으로 개발 범위와 우선순위를 정했습니다.
+- 발표 자료를 만들고 최종 발표를 했습니다.
+- 발표 평가 비중이 큰 대회라, 팀 전체가 발표 흐름에 맞춰 개발 범위와 우선순위를 정했습니다.
 
 ## Security Flow
 
@@ -132,29 +130,10 @@ npm run dev
 └── README.md
 ```
 
-## Custom Code and Library APIs
-
-프로젝트에서 직접 작성한 주요 함수는 다음과 같습니다.
-
-- 백엔드: `processMeeting`, `buildMeetingUserPrompt`, `dropTokenTouchingCorrections`, `scanResidualPII`, `addTasksFromActionItems`, `updateTask`
-- 프런트엔드: `detectEntities`, `tokenizeFromEntities`, `restoreDeep`, `applyCorrections`, `processMeeting`
-- 음성 처리: `MeetingRecorder`, `resampleTo16k`, `collapseRepeats`, `getTranscriber`
-
-라이브러리와 표준 API는 직접 재구현하지 않았습니다.
-
-- Express: `express()`, `express.json()`, `app.get/post/patch/delete`, `express.static`
-- Anthropic SDK: `new Anthropic()`, `anthropic.messages.create()`
-- React: `useState`, `useMemo`와 컴포넌트 렌더링
-- Transformers.js: `pipeline`, `env`
-- 브라우저 표준: `fetch`, `AudioContext`, `AudioWorkletNode`, `Worker`
-
-구체적인 입력·출력 형식과 함수별 책임은 [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)에 정리했습니다.
-
 ## Documents
 
 - [프로젝트 포트폴리오](./docs/PORTFOLIO.md)
 - [코드 및 API 해설](./docs/CODE_AND_API_GUIDE.md)
-- [소스 및 출처 기록](./docs/SOURCE_INVENTORY.md)
 - [팀 저장소 원본 README](./docs/TEAM_REPOSITORY_README.md)
 - [개발 명세서](./docs/VeilNote_Development_Spec_v2.docx)
 - [API 명세서 PDF](./docs/VeilNote_API_Spec.pdf)
